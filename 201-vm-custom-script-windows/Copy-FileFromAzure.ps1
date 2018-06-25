@@ -6,6 +6,7 @@ param (
     [string]$fileToInstall
 )
 
+<#
 $LogFile = "c:\apps\logs\$(gc env:computername).log"
 New-Item -ItemType file -Path $LogFile
 
@@ -15,10 +16,13 @@ Function WriteLog
 
 	Add-content $LogFile -value $logString
 }
+#>
 
 $source = $artifactsLocation + "\$folderName\$fileToInstall" + $artifactsLocationSasToken
 $dest = "C:\WindowsAzure\$folderName"
+Write-Verbose "DEEPNETWORK new folder name has been created " -verbose
 
+<#
 try{
 	New-Item -Path $dest -ItemType directory
 } catch {
@@ -29,6 +33,6 @@ try{
 	WriteLog "FailedItem: $FailedItem"
 
 }
-
+#>
 
 Invoke-WebRequest $source -OutFile "$dest\$fileToInstall"
