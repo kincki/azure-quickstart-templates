@@ -38,6 +38,10 @@
     "kvmName": {
       "type": "string",
       "defaultValue": "kVM"
+    },
+    "dnsName": {
+      "type": "string",
+      "defaultValue": "hanidns"
     }
   },
   "variables": {
@@ -49,7 +53,7 @@
     "vmName": "[parameters('kvmName')]",
     "virtualNetworkName": "MyVNET",
     "publicIPAddressName": "myPublicIP",
-    "dnsNameForPublicIP": "[uniqueString(resourceGroup().id)]",
+    "dnsNameForPublicIP": "[parameters('dnsName')]",
     "scriptFolder": ".",
     "scriptFileName": "Copy-FileFromAzure.ps1",
     "fileToBeCopied": "FileToBeCopied-2.txt",
