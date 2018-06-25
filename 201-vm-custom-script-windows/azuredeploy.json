@@ -33,6 +33,10 @@
       "defaultValue": "[resourceGroup().location]",
       "metadata": {
         "description": "Location for all resources."
+      },
+      "vmName": {
+        "type": "string",
+        "defaultValue": "kVM"
       }
     }
   },
