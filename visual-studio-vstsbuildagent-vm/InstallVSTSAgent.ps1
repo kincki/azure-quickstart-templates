@@ -34,15 +34,15 @@ function PrepMachineForAutologon () {
       $domain = $vmAdminUserName.Split("\")[0]
       $userName = $vmAdminUserName.Split('\')[1]
 
-  	  Write-Verbose "User name and domain are retrievedas : $userName, $domain"
+  	  LogWrite "User name and domain are retrievedas : $userName, $domain"
 
     }
     else
     {
       $domain = $Env:ComputerName
-	  Write-Verbose "Domain to Connect to: $domain"
+	  LogWrite "Domain to Connect to: $domain"
       $userName = $vmAdminUserName
-      Write-Verbose "Username constructed to use for creating a PSSession: $domain\\$userName"
+      LogWrite "Username constructed to use for creating a PSSession: $domain\\$userName"
     }
    
     $credentials = New-Object System.Management.Automation.PSCredential("$domain\\$userName", $password)
@@ -68,7 +68,7 @@ function PrepMachineForAutologon () {
       catch 
       {
         # Ignore the failure to create the drive and go ahead with trying to set the agent up
-        Write-Verbose "Moving ahead with agent setup as the script failed to create HKU drive necessary for checking if the registry entry for the user's SId exists.\n$_"
+        LogWrite "Moving ahead with agent setup as the script failed to create HKU drive necessary for checking if the registry entry for the user's SId exists.\n$_"
       }
     }
   
@@ -87,7 +87,7 @@ function PrepMachineForAutologon () {
         if (!(Test-Path "HKU:\\$securityId\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"))
         {
           New-Item -Path "HKU:\\$securityId\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run" -Force
-          Write-Verbose "Created the registry entry path required to enable autologon."
+          LogWrite "Created the registry entry path required to enable autologon."
         }
         
         break
@@ -105,36 +105,36 @@ function PrepMachineForAutologon () {
     }
 }
 
-Write-Verbose "Entering InstallVSOAgent.ps1" -verbose
+LogWrite "Entering InstallVSOAgent.ps1" 
 
 $currentLocation = Split-Path -parent $MyInvocation.MyCommand.Definition
-Write-Verbose "Current folder: $currentLocation" -verbose
+LogWrite "Current folder: $currentLocation" 
 
 #Create a temporary directory where to download from VSTS the agent package (vsts-agent.zip) and then launch the configuration.
 $agentTempFolderName = Join-Path "D:" ([System.IO.Path]::GetRandomFileName())
 New-Item -ItemType Directory -Force -Path $agentTempFolderName
-Write-Verbose "Temporary Agent download folder: $agentTempFolderName" -verbose
+LogWrite "Temporary Agent download folder: $agentTempFolderName" 
 
 $serverUrl = "https://$VSTSAccount.visualstudio.com"
-Write-Verbose "Server URL: $serverUrl" -verbose
+LogWrite "Server URL: $serverUrl" 
 
 $retryCount = 3
 $retries = 1
-Write-Verbose "Downloading Agent install files" -verbose
+LogWrite "Downloading Agent install files" 
 do
 {
   try
   {
-    Write-Verbose "Trying to get download URL for latest VSTS agent release..."
+    LogWrite "Trying to get download URL for latest VSTS agent release..."
     $latestReleaseDownloadUrl = "https://vstsagentpackage.azureedge.net/agent/2.126.0/vsts-agent-win-x64-2.126.0.zip"
     Invoke-WebRequest -Uri $latestReleaseDownloadUrl -Method Get -OutFile "$agentTempFolderName\agent.zip"
-    Write-Verbose "Downloaded agent successfully on attempt $retries" -verbose
+    LogWrite "Downloaded agent successfully on attempt $retries" 
     break
   }
   catch
   {
     $exceptionText = ($_ | Out-String).Trim()
-    Write-Verbose "Exception occured downloading agent: $exceptionText in try number $retries" -verbose
+    LogWrite "Exception occured downloading agent: $exceptionText in try number $retries" 
     $retries++
     Start-Sleep -Seconds 30 
   }
@@ -149,34 +149,34 @@ New-Item -ItemType Directory -Force -Path $agentInstallationPath
 # Create a folder for the build work
 New-Item -ItemType Directory -Force -Path (Join-Path $agentInstallationPath $WorkFolder)
 
-Write-Verbose "Extracting the zip file for the agent" -verbose
+LogWrite "Extracting the zip file for the agent" 
 $destShellFolder = (new-object -com shell.application).namespace("$agentInstallationPath")
 $destShellFolder.CopyHere((new-object -com shell.application).namespace("$agentTempFolderName\agent.zip").Items(),16)
 
 # Removing the ZoneIdentifier from files downloaded from the internet so the plugins can be loaded
 # Don't recurse down _work or _diag, those files are not blocked and cause the process to take much longer
-Write-Verbose "Unblocking files" -verbose
+LogWrite "Unblocking files" 
 Get-ChildItem -Recurse -Path $agentInstallationPath | Unblock-File | out-null
 
 # Retrieve the path to the config.cmd file.
 $agentConfigPath = [System.IO.Path]::Combine($agentInstallationPath, 'config.cmd')
-Write-Verbose "Agent Location = $agentConfigPath" -Verbose
+LogWrite "Agent Location = $agentConfigPath" 
 if (![System.IO.File]::Exists($agentConfigPath))
 {
-    Write-Error "File not found: $agentConfigPath" -Verbose
+    Write-Error "File not found: $agentConfigPath" 
     return
 }
 
 # Call the agent with the configure command and all the options (this creates the settings file) without prompting
 # the user or blocking the cmd execution
 
-Write-Verbose "Configuring agent" -Verbose
+LogWrite "Configuring agent" 
 
 # Set the current directory to the agent dedicated one previously created.
 Push-Location -Path $agentInstallationPath
 
-Write-Verbose "url: $serverUrl"
-Write-Verbose "PAT : $PersonalAccessToken; poolname $PoolName --agent $AgentName --runAsAutoLogon --overwriteAutoLogon --windowslogonaccount $vmAdminUserName --windowslogonpassword $vmAdminPassword"
+LogWrite "url: $serverUrl"
+LogWrite "PAT : $PersonalAccessToken; poolname $PoolName --agent $AgentName --runAsAutoLogon --overwriteAutoLogon --windowslogonaccount $vmAdminUserName --windowslogonpassword $vmAdminPassword"
 
 try
 {
@@ -201,14 +201,14 @@ catch
 	$ErrorMessage = $_.Exception.Message
     $FailedItem = $_.Exception.ItemName
 
-	Write-Verbose "ErrorMessage: $ErrorMessage"
-	Write-Verbose "FailedItem: $FailedItem"
+	LogWrite "ErrorMessage: $ErrorMessage"
+	LogWrite "FailedItem: $FailedItem"
 
 }
 
 Pop-Location
 
-Write-Verbose "Agent install output: $LASTEXITCODE" -Verbose
+LogWrite "Agent install output: $LASTEXITCODE" 
 
-Write-Verbose "Exiting InstallVSTSAgent.ps1" -Verbose
+LogWrite "Exiting InstallVSTSAgent.ps1" 
 
