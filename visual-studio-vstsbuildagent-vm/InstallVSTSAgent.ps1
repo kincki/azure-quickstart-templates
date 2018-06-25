@@ -33,6 +33,9 @@ function PrepMachineForAutologon () {
     {
       $domain = $vmAdminUserName.Split("\")[0]
       $userName = $vmAdminUserName.Split('\')[1]
+
+  	  Write-Verbose "User name and domain are retrievedas : $userName, $domain"
+
     }
     else
     {
