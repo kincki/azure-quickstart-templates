@@ -23,7 +23,7 @@ Function WriteLog
 	Add-content $LogFile -value $logString
 }
 
-WriteLog "~~~~~ DEEPNETWORK custom script running!!! ~~~~~" 
+Write-verbose "~~~~~ DEEPNETWORK custom script running!!! ~~~~~" -verbose
 
 
 $source = $artifactsLocation + "\$folderName\$fileToInstall" + $artifactsLocationSasToken
