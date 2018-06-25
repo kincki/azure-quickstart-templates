@@ -23,7 +23,7 @@ Write-Verbose "DEEPNETWORK new folder name has been created " -verbose
 
 $source = $artifactsLocation + "\$folderName\$fileToInstall" + $artifactsLocationSasToken
 $dest = "C:\WindowsAzure\$folderName"
-New-Item -Path $dest -ItemType directory -ea stop
+New-Item -Path $dest -ItemType directory
 Invoke-WebRequest $source -OutFile "$dest\$fileToInstall"
 
 <#
