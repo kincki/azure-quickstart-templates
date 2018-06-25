@@ -33,11 +33,11 @@
       "defaultValue": "[resourceGroup().location]",
       "metadata": {
         "description": "Location for all resources."
-      },
-      "vmName": {
-        "type": "string",
-        "defaultValue": "kVM"
       }
+    },
+    "kvmName": {
+      "type": "string",
+      "defaultValue": "kVM"
     }
   },
   "variables": {
@@ -46,7 +46,7 @@
     "subnetName": "Subnet",
     "subnetPrefix": "10.0.0.0/24",
     "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]",
-    "vmName": "MyVM",
+    "vmName": "[parameters('kvmName')]",
     "virtualNetworkName": "MyVNET",
     "publicIPAddressName": "myPublicIP",
     "dnsNameForPublicIP": "[uniqueString(resourceGroup().id)]",
