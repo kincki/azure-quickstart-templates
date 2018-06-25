@@ -48,7 +48,7 @@
     "dnsNameForPublicIP": "[uniqueString(resourceGroup().id)]",
     "scriptFolder": ".",
     "scriptFileName": "Copy-FileFromAzure.ps1",
-    "fileToBeCopied": "FileToBeCopied.txt",
+    "fileToBeCopied": "FileToBeCopied-2.txt",
     "scriptParameters": "[concat('-artifactsLocation ', parameters('_artifactsLocation'), ' -artifactsLocationSasToken \"', parameters('_artifactsLocationSasToken'), '\" -folderName ', variables('scriptFolder'), ' -fileToInstall ', variables('fileToBeCopied'))]"
   },
   "resources": [
