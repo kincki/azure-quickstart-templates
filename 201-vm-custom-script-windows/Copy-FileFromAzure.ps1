@@ -18,13 +18,17 @@ Function WriteLog
 }
 #>
 
+Write-Verbose "DEEPNETWORK new folder name has been created " -verbose
+
+
 $source = $artifactsLocation + "\$folderName\$fileToInstall" + $artifactsLocationSasToken
 $dest = "C:\WindowsAzure\$folderName"
-Write-Verbose "DEEPNETWORK new folder name has been created " -verbose
+New-Item -Path $dest -ItemType directory -ea stop
+Invoke-WebRequest $source -OutFile "$dest\$fileToInstall"
 
 <#
 try{
-	New-Item -Path $dest -ItemType directory
+	New-Item -Path $dest -ItemType directory -ea stop
 } catch {
 	$ErrorMessage = $_.Exception.Message
     $FailedItem = $_.Exception.ItemName
@@ -35,4 +39,3 @@ try{
 }
 #>
 
-Invoke-WebRequest $source -OutFile "$dest\$fileToInstall"
