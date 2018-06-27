@@ -6,21 +6,20 @@ param (
     [string]$fileToInstall
 )
 
-
-$LogFile = "c:\apps\logs\$(gc env:computername).log"
-
-#The log file may already exist
-try {
-	New-Item -ItemType file -Path $LogFile -ErrorAction Stop
-} catch [System.IO.IoException] {
-	WriteLog "$LogFile already exists..Continue!.."
-}
-
 Function WriteLog
 {
 	Param ([string] $logString)
 
 	Add-content $LogFile -value $logString
+}
+
+$LogFile = "c:\apps\logs\$(Get-Content env:computername).log"
+
+#The log file may already exist
+try {
+	New-Item -ItemType file -Path $LogFile -ErrorAction Stop
+} catch [System.IO.IoException] {
+	Write-Verbose "$LogFile already exists..Continue!.." -verbose
 }
 
 Write-verbose "~~~~~ DEEPNETWORK custom script running!!! ~~~~~" -verbose
@@ -35,8 +34,8 @@ try{
 	$ErrorMessage = $_.Exception.Message
     $FailedItem = $_.Exception.ItemName
 
-	WriteLog "ErrorMessage: $ErrorMessage"
-	WriteLog "FailedItem: $FailedItem"
+	Write-Verbose "ErrorMessage: $ErrorMessage" -Verbose
+	Write-verbose "FailedItem: $FailedItem" -verbose
 }
 
 Invoke-WebRequest $source -OutFile "$dest\$fileToInstall"
