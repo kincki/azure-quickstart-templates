@@ -6,14 +6,14 @@ param (
     [string]$fileToInstall
 )
 
+$LogFile = "c:\apps\logs\$(Get-Content env:computername).log"
+
 Function WriteLog
 {
 	Param ([string] $logString)
 
 	Add-content $LogFile -value $logString
 }
-
-$LogFile = "c:\apps\logs\$(Get-Content env:computername).log"
 
 #The log file may already exist
 try {
