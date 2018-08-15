@@ -1,46 +1,52 @@
 #!/bin/sh
 
 # Install Build Tools
-sudo /bin/date +%H:%M:%S > /home/$5/install.progress.txt
+sudo /bin/date +%H:%M:%S >> /home/badmin/install.progress.txt
+echo "~~~ INSTALLING Build Agent for Java, Maven, Docker ~~~" >> /home/badmin/install.progress.txt
 
-echo "ooooo      MINIMUM INSTALL      ooooo" >> /home/$5/install.progress.txt
+baseAgentName=$4
+
+# Check if a prior installation exists
+agentCount=0
+basePath="/home/badmin/vsts-agent"
+
+if [ -d "$basePath" ]
+ then echo "Initial installation exists" >> /home/badmin/install.progress.txt
+ while true; do
+  let agentCount=$agentCount+1
+  newPath="$basePath-$agentCount"
+  if [ -f "$newPath" ]
+   then
+	continue
+  else
+   echo "Installing Agent $baseAgentName-$agentCount " >> /home/badmin/install.progress.txt
+   agentFolder="$newPath"
+   agentName="$baseAgentName-$agentCount"
+   break
+  fi
+ done
+else
+  echo "Installing Agent $baseAgentName-$agentCount " >> /home/badmin/install.progress.txt
+  agentFolder="$basePath"
+  agentName="$baseAgentName"
+fi
+
+sudo /bin/date +%H:%M:%S >> /home/badmin/install.progress.txt
+
+#update and upgrade your system
+sudo apt-get -y update
+sudo apt-get -y upgrade
+
+#install the required packages if don't exist already
+sudo apt-get -y install software-properties-common
+
+#Install the default JDK
+# sudo add-apt-repository -y ppa:openjdk-r/ppa
+# sudo apt-get update 
+# sudo apt-get install default-jdk
 
 # Install Java
-
-# echo "Installing Oracle Java 6 package" >> /home/$5/install.progress.txt
-
-# Install Oracle Java in silent mode
-# echo debconf shared/accepted-oracle-license-v1-1 select true | sudo debconf-set-selections
-# echo debconf shared/accepted-oracle-license-v1-1 seen true | sudo debconf-set-selections
-
-# sudo add-apt-repository -y ppa:webupd8team/java
-# sudo apt-get -y update
-# sudo apt-get install -y oracle-java6-installer
-
-# sudo /bin/date +%H:%M:%S >> /home/$5/install.progress.txt
-
-# echo "Installing Oracle Java 7 package" >> /home/$5/install.progress.txt
-
-# sudo apt-get install -y oracle-java7-installer
-
-# sudo /bin/date +%H:%M:%S >> /home/$5/install.progress.txt
-
-# echo "Installing Oracle Java 8 package" >> /home/$5/install.progress.txt
-
-# sudo apt-get install -y oracle-java8-installer
-
-# sudo /bin/date +%H:%M:%S >> /home/$5/install.progress.txt
-
-echo "Installing openjdk-7-jdk package" >> /home/$5/install.progress.txt
-
-sudo add-apt-repository -y ppa:openjdk-r/ppa
-sudo apt-get -y update
-sudo apt-get install -y openjdk-7-jdk
-sudo apt-get -y update --fix-missing
-sudo apt-get install -y openjdk-7-jdk
-sudo /bin/date +%H:%M:%S >> /home/$5/install.progress.txt
-
-echo "Installing openjdk-8-jdk package" >> /home/$5/install.progress.txt
+echo "Installing openjdk-8-jdk package" >> /home/badmin/install.progress.txt
 
 sudo add-apt-repository -y ppa:openjdk-r/ppa
 sudo apt-get -y update
@@ -50,87 +56,115 @@ sudo apt-get install -y openjdk-8-jdk
 
 sudo ln -s /usr/lib/jvm/java-8-openjdk-amd64/ /usr/lib/jvm/default-java
 
-sudo /bin/date +%H:%M:%S >> /home/$5/install.progress.txt
-
+sudo /bin/date +%H:%M:%S >> /home/badmin/install.progress.txt
 
 # Install Java build tools
-
-echo "Installing maven package" >> /home/$5/install.progress.txt
+echo "Installing Maven package" >> /home/badmin/install.progress.txt
 sudo apt-get -y install maven
-sudo /bin/date +%H:%M:%S >> /home/$5/install.progress.txt
 
+sudo /bin/date +%H:%M:%S >> /home/badmin/install.progress.txt
 
+# Install Docker
+echo "Updating Git..." >> /home/badmin/install.progress.txt
+sudo add-apt-repository -y ppa:git-core/ppa 1>/dev/null
+sudo apt-get -qq -y update 1>/dev/null
+sudo apt-get -qq -y install git 1>/dev/null
 
-sudo -u $5 mkdir /home/$5/downloads
-sudo -u $5 mkdir /home/$5/lib
+echo "Installing and configuring Docker..." >> /home/badmin/install.progress.txt
+sudo apt-get -qq -y --no-install-recommends install curl apt-transport-https ca-certificates curl software-properties-common 1>/dev/null
+curl -fsSL https://apt.dockerproject.org/gpg | sudo apt-key add - 1>/dev/null
+sudo add-apt-repository "deb https://apt.dockerproject.org/repo/ ubuntu-$(lsb_release -cs) main"
+sudo apt-get -qq -y update 1>/dev/null
+sudo apt-get -qq -y install docker-engine 1>/dev/null
+sudo groupadd -f docker
+sudo adduser badmin docker 1>/dev/null
 
-# Install VSTS build agent dependencies
+sudo /bin/date +%H:%M:%S >> /home/badmin/install.progress.txt
 
-echo "Installing libunwind8 and libcurl3 package" >> /home/$5/install.progress.txt
-sudo apt-get -y install libunwind8 libcurl3
-sudo /bin/date +%H:%M:%S >> /home/$5/install.progress.txt
+# Install Dotnet Core for Ubuntu 16.04
+sudo wget https://dot.net/v1/dotnet-install.sh
+sudo chmod 777 dotnet-install.sh
+sudo ./dotnet-install.sh
 
+# Download and Install VSTS Agent
+# Check if the agent is already downloaded
+if [ -f "/home/badmin/downloads/vsts-agent-linux-x64-2.138.5.tar.gz" ]
+	then echo "Agent Installation file is already downloaded.."  >> /home/badmin/install.progress.txt
+else
+	echo "Agent Installation file ToBe Downloaded.."  >> /home/badmin/install.progress.txt
+
+	sudo mkdir /home/badmin/downloads
+	sudo mkdir /home/badmin/lib
+
+	cd /home/badmin/downloads
+
+	# Download the releases json file
+	echo "Downloading VSTS Agent Releases file" >> /home/badmin/install.progress.txt
+	curl -i -H "Accept: application/json" -H "Content-Type: application/json" https://api.github.com/repos/Microsoft/vsts-agent/releases >> releases.json
+
+	# install JQ package for parsing JSON file
+	sudo apt-get -y install jq
+
+	# TODO: Parse Releases.json File to Get assets.json file for the lates vsts agent release
+	echo "Parsing VSTS Agent Releases file" >> /home/badmin/install.progress.txt
+
+	# TODO: Parse assets.json file to get the download URL for VSTS Linux Agent
+	echo "Parsing VSTS Agent Assets file" >> /home/badmin/install.progress.txt
+
+	# Download the vsts agent
+	echo "Downloading VSTS Build agent package" >> /home/badmin/install.progress.txt
+	sudo wget https://vstsagentpackage.azureedge.net/agent/2.138.5/vsts-agent-linux-x64-2.138.5.tar.gz
+fi
+
+# Install VSTS build agent dependencies 
+echo "Installing VSTS Build agent dependencies" >> /home/badmin/install.progress.txt
+sudo mkdir $agentFolder
+cd $agentFolder
+sudo tar xzf /home/badmin/downloads/vsts-agent-linux-x64-2.138.5.tar.gz 
+sudo ./bin/installdependencies.sh -y
+
+# echo "Installing libunwind8 and libcurl3 package" >> /home/badmin/install.progress.txt
+# sudo apt-get -y install libunwind8 libcurl3
+# sudo /bin/date +%H:%M:%S >> /home/badmin/install.progress.txt
 
 # Download VSTS build agent and required security patch
+sudo apt-get -y install libicu55
 
-echo "Downloading VSTS Build agent package" >> /home/$5/install.progress.txt
+sudo /bin/date +%H:%M:%S >> /home/badmin/install.progress.txt
 
-cd /home/$5/downloads
-
-# sudo -u $5 wget https://github.com/Microsoft/vsts-agent/releases/download/v2.101.1/vsts-agent-ubuntu.14.04-x64-2.101.1.tar.gz
-# sudo -u $5 wget https://github.com/Microsoft/vsts-agent/releases/download/v2.102.1/vsts-agent-ubuntu.14.04-x64-2.102.1.tar.gz
-sudo -u $5 wget https://github.com/Microsoft/vsts-agent/releases/download/v2.104.2/vsts-agent-ubuntu.14.04-x64-2.104.2.tar.gz
-sudo -u $5 wget http://security.ubuntu.com/ubuntu/pool/main/i/icu/libicu52_52.1-8ubuntu0.2_amd64.deb
-sudo dpkg -i libicu52_52.1-8ubuntu0.2_amd64.deb
-
-sudo /bin/date +%H:%M:%S >> /home/$5/install.progress.txt
-
-
-echo "Installing VSTS Build agent package" >> /home/$5/install.progress.txt
+echo "Installing VSTS Build agent package" >> /home/badmin/install.progress.txt
 
 # Install VSTS agent
-sudo -u $5 mkdir /home/$5/vsts-agent
-cd /home/$5/vsts-agent
-sudo -u $5 tar xzf /home/$5/downloads/vsts-agent-ubuntu*
-
 echo "LANG=en_US.UTF-8" > .env
-echo "export LANG=en_US.UTF-8" >> /home/$5/.bashrc
+echo "export LANG=en_US.UTF-8" >> /home/badmin/.bashrc
 export LANG=en_US.UTF-8
 echo "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> .env
-echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> /home/$5/.bashrc
+echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> /home/badmin/.bashrc
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
-# export JAVA_HOME_6_X64=/usr/lib/jvm/java-6-oracle
-# echo "JAVA_HOME_6_X64=/usr/lib/jvm/java-6-oracle" >> .env
-# echo "export JAVA_HOME_6_X64=/usr/lib/jvm/java-6-oracle" >> /home/$5/.bashrc
-# export JAVA_HOME_6_X64=/usr/lib/jvm/java-6-oracle
-# export JAVA_HOME_7_X64=/usr/lib/jvm/java-7-oracle
-# echo "JAVA_HOME_7_X64=/usr/lib/jvm/java-7-oracle" >> .env
-# echo "export JAVA_HOME_7_X64=/usr/lib/jvm/java-7-oracle" >> /home/$5/.bashrc
-export JAVA_HOME_7_X64=/usr/lib/jvm/java-7-openjdk-amd64
-echo "JAVA_HOME_7_X64=/usr/lib/jvm/java-7-openjdk-amd64" >> .env
-echo "export JAVA_HOME_7_X64=/usr/lib/jvm/java-7-openjdk-amd64" >> /home/$5/.bashrc
 echo "JAVA_HOME_8_X64=/usr/lib/jvm/java-8-openjdk-amd64" >> .env
-echo "export JAVA_HOME_8_X64=/usr/lib/jvm/java-8-openjdk-amd64" >> /home/$5/.bashrc
+echo "export JAVA_HOME_8_X64=/usr/lib/jvm/java-8-openjdk-amd64" >> /home/badmin/.bashrc
 export JAVA_HOME_8_X64=/usr/lib/jvm/java-8-openjdk-amd64
 
-echo URL: $1 > /home/$5/vsts.install.log.txt 2>&1
-echo PAT: HIDDEN >> /home/$5/vsts.install.log.txt 2>&1
-echo Pool: $3 >> /home/$5/vsts.install.log.txt 2>&1
-echo Agent: $4 >> /home/$5/vsts.install.log.txt 2>&1
-echo User: $5 >> /home/$5/vsts.install.log.txt 2>&1
-echo =============================== >> /home/$5/vsts.install.log.txt 2>&1
-echo Running Agent.Listener >> /home/$5/vsts.install.log.txt 2>&1
-sudo -u $5 -E bin/Agent.Listener --configure --unattended --nostart --replace --acceptteeeula --url $1 --auth PAT --token $2 --pool $3 --agent $4 >> /home/$5/vsts.install.log.txt 2>&1
-echo =============================== >> /home/$5/vsts.install.log.txt 2>&1
-echo Running ./svc.sh install >> /home/$5/vsts.install.log.txt 2>&1
-sudo -E ./svc.sh install $5 >> /home/$5/vsts.install.log.txt 2>&1
-echo =============================== >> /home/$5/vsts.install.log.txt 2>&1
-echo Running ./svc.sh start >> /home/$5/vsts.install.log.txt 2>&1
+echo URL: $1 > /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+echo PAT: HIDDEN >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+echo Pool: $3 >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+echo Agent: $4 >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+echo User: badmin >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+echo =============================== >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+echo Running Agent.Listener >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+sudo -E ./bin/Agent.Listener configure --unattended --runasservice --replace --acceptteeeula --url $1 --auth PAT --token $2 --pool $3 --agent $agentName >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+echo =============================== >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+echo Running ./svc.sh install >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+sudo -E ./svc.sh install >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+echo =============================== >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+echo Running ./svc.sh start >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
 
-sudo -E ./svc.sh start >> /home/$5/vsts.install.log.txt 2>&1
-echo =============================== >> /home/$5/vsts.install.log.txt 2>&1
+sudo -E ./svc.sh start >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
+echo =============================== >> /home/badmin/$agentFolder/vsts.install.log.txt 2>&1
 
-sudo chown -R $5.$5 .*
+sudo chown -R badmin.badmin .*
 
-echo "ALL DONE!" >> /home/$5/install.progress.txt
-sudo /bin/date +%H:%M:%S >> /home/$5/install.progress.txt
+sudo /bin/date +%H:%M:%S >> /home/badmin/install.progress.txt
+
+echo "ALL DONE!" >> /home/badmin/install.progress.txt
+sudo /bin/date +%H:%M:%S >> /home/badmin/install.progress.txt
